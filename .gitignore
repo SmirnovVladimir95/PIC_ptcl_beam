@@ -1,0 +1,11 @@
+venv/
+ArticleResults/
+CollisionData/
+Tests/
+*.pyc
+.DS_Store
+*/__pycache__/
+.idea/
+FieldData/
+*.xlsx
+*.npy
