@@ -1,99 +1,78 @@
-"""
-This file containes function for simulation
-of ion beam in constant electric and magnetic fields
-with mass, energy, angle velocity distributions
-"""
-import numpy as np
-from scipy.constants import e, N_A, pi
-import time
-from Particle.Particle import Particle
-from Field.LoadField import load_phi_data, load_B_data
-from Tools.GenerateBeamConditions import gen_mass, gen_velocities, gen_positions
-from Tools.TrackParticles import TrackTraj
-from Tools.VisualizeBeam import plot_traj
-from Collisions.Collisions import IonNeutralElasticCollision
-from Collisions.NeutralGas import NeutralGas
-    
+from os.path import join
+from numpy import array
+from numpy import random, ones, concatenate
+from scipy.constants import pi, N_A, e
+import matplotlib.pyplot as plt
 
-def simulation(Ntot, init_pos, energy_range, theta_range, charge, it_num,
-         dt, phi_data='PenningPotencial.xlsx', B_data='B_data_full.npy',
-         collisions=False, seed=None):
-    """
-    Parameters
-    ----------
-    Ntot: int
-        number of ptcls in the system
-    init_pos: numpy.array with shape (3, Ntot)
-        initial positions of particles
-    energy_range: tuple
-        energy bounds for ptcls
-    theta_range: tuple
-        angle bounds in spherical coordinate system
-    charge: float
-        ptcls charge
-    it_num: int
-        number of time iterations
-    dt: float
-        time integration step
-    phi_data: str
-        filepath to electric potencial data
-    B_data: str
-        filepath to magnetic field data
-    collisions: bool
-        activate (True) or deactivate (False) ptcls collisions
-    seed: int
-        random seed
-    """
-    #---------------------------Particles-----------------------------------
-    assert Ntot % 3 == 0
-    if seed:
-        np.random.seed(seed)
-    m_Uranium = 0.235/N_A
-    m_235 = np.ones(Ntot/3)*m_Uranium
-    m_135 = gen_mass(mean=0.140/N_A, sigma=0.005/N_A, Ntot=Ntot/3)
-    m_95 = gen_mass(mean=0.095/N_A, sigma=0.005/N_A, Ntot=Ntot/3)
-    m = np.concatenate((m_235, m_135, m_95))
-    
-    vel = gen_velocities(E_range=energy_range, m=m, theta=theta_range)
-    pos = gen_positions(pos=init_pos, sub_width=0.01, Ntot=Ntot)
-    ptcl_beam = Particle(mass=m, charge=e, pos=pos, vel=vel)
-    #-----------------------------------------------------------------------
-    #------------------------------Field------------------------------------
-    r, phi = load_phi_data(filepath=phi_data)
-    ptcl_beam.set_E(phi=phi, r=r)
-    grid, B = load_B_data(filepath=B_data)
-    ptcl_beam.set_B(B=B, grid=grid)
-    #-----------------------------------------------------------------------
-    #---------------------------Collisions----------------------------------
-    if collisions:
-        #gas = NeutralGas(T=300, n=1e20, mass=6.6e-26)
-        #collision_obj = IonNeutralElasticCollision(sigma, dt, gas, 
-        #                   ions=ptcl_beam) #init collisions
-        pass
-    #-----------------------------------------------------------------------
-    #-----------------------------Main_Loop---------------------------------
-    obj_traj = TrackTraj(ptcl_beam)
-    ptcl_beam.vel_push(dt=-0.5*dt)
-    t0 = time.time()
+from Field.FieldInterpolation.FieldInterpolation3D import FieldInterpolation3D
+from Field.FieldInterpolation.FieldInterpolationRadial import FieldInterpolationRadial
+from Particle.Particle import Particle
+from InitBeamConditions.GenerateMassDistrbution import gen_normal_mass
+from InitBeamConditions.GeneratePositionDistribution import gen_positions
+from InitBeamConditions.GenerateVelocityDistribution import gen_velocities
+from Field.FieldLoad.ElectricFieldLoad import load_radial_electric_field
+from Field.FieldLoad.MagneticFieldLoad import load_magnetic_field_3d
+from TrackParticles.TrackTrajectory import TrackTraj
+from Visualization.PlotBeamTrajectory import plot_traj_multy_ptcls_type
+
+
+def simulation(n_total, init_pos, energy_range, vel_theta, dt, it_num, seed=None):
+    random.seed(seed)
+    m_235 = ones(n_total / 3) * 0.235 / N_A
+    m_140 = gen_normal_mass(mean=0.140 / N_A, std=0.006 / N_A, n_total=n_total / 3)
+    m_97 = gen_normal_mass(mean=0.097 / N_A, std=0.006 / N_A, n_total=n_total / 3)
+    mass = concatenate((m_235, m_140, m_97))
+    charge = ones(n_total) * e
+
+    r, efr = load_radial_electric_field(join('FieldData', 'PenningPotentialApproximated.xlsx'))
+    efr_interp = FieldInterpolationRadial(radial_grid=r, radial_field=efr)
+
+    grid, mf = load_magnetic_field_3d(dirpath=join('FieldData', 'MagneticField_2_coils'))
+
+    for i in range(mf.shape[0]):
+        mf[i] *= 1.5
+
+    mf_interp = FieldInterpolation3D(grid=grid, field=mf)
+
+    beam = Particle(mass=mass,
+                    charge=charge,
+                    pos=gen_positions(pos=init_pos, sub_width=0.01, n_total=n_total),
+                    vel=gen_velocities(energy_range=energy_range, mass=mass, theta=vel_theta),
+                    electric_field_interp_func=efr_interp.interp_func,
+                    magnetic_field_interp_func=mf_interp.interp_func,
+                    )
+
+    track_beam = TrackTraj(beam)
+    from time import time
+    t0 = time()
+    beam.vel_push(dt=-0.5*dt)
     for it in range(it_num):
-        ptcl_beam.push(dt)
-        if collisions:
-            #collision_obj.vel_update()
-            pass
-        ptcl_beam.E_interp()
-        ptcl_beam.B_interp()
-        obj_traj.track_traj()
-    print time.time() - t0
-    #-----------------------------------------------------------------------
-    #---------------------------Visualize_Beam------------------------------
-    x, y, z = obj_traj.get_traj()
-    plot_traj(z, x, alpha=0.3, xlabel='x, meter', ylabel='y, meter', 
-          savefig=False)
-    #-----------------------------------------------------------------------
-    
-import cProfile
-    
+        beam.push(dt=dt)
+        beam.electric_field_interp()
+        beam.magnetic_field_interp()
+        if it % 100 == 0:
+            track_beam.track_traj()
+        #print beam.magnetic_field[:, 0]
+        #print beam.electric_field[:, 0]
+
+    print 'simulation time:', time() - t0
+    x, y, z = track_beam.get_traj()
+    plt.figure(figsize=(5, 5))
+    plt.xlim((-0.3, 0.3))
+    plt.ylim((-0.3, 0.3))
+    plot_traj_multy_ptcls_type(x, y, ptcl_type_num=3, colors=('blue', 'green', 'red'),
+                               labels=('m = 235', '120 < m < 160', '70 < m < 120'),
+                               alpha=0.3, xlabel='x, meter', ylabel='y, meter')
+    plt.show()
+    return track_beam
+
+
 if __name__ == '__main__':
-    simulation(Ntot=999, init_pos=[0.3, 0., -0.5],
-          energy_range=(1*e, 20*e), theta_range=(0, pi/6),
-          charge=e, it_num=120, dt=1e-6, seed=20)
+    simulation(n_total=120,
+               init_pos=[0.25, 0, 0],
+               energy_range=(1 * e, 20 * e),
+               vel_theta=(0, pi / 6),
+               it_num=10000,
+               dt=1e-8,
+               seed=1,
+               )
