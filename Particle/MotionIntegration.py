@@ -1,10 +1,10 @@
 """
-This file contains numba functions for particles 
+This file contains numba functions for particles
 positions and velocities update
 """
 import numba
 from numba import prange
-      
+
 
 @numba.njit(cache=True, fastmath=True)
 def UpdateSingleVelocityBoris(vel_x, vel_y, vel_z, Ex, Ey, Ez,
@@ -25,12 +25,12 @@ def UpdateSingleVelocityBoris(vel_x, vel_y, vel_z, Ex, Ey, Ez,
     m: float
         ptcl mass
     return: tuple with shape (3,)
-        updated velocities 
+        updated velocities
     """
     tx = (q/m)*Bx*0.5*dt
     ty = (q/m)*By*0.5*dt
     tz = (q/m)*Bz*0.5*dt
-    
+
     t_mag2 = tx*tx + ty*ty + tz*tz
     sx = 2*tx/(1+t_mag2)
     sy = 2*ty/(1+t_mag2)
@@ -42,7 +42,7 @@ def UpdateSingleVelocityBoris(vel_x, vel_y, vel_z, Ex, Ey, Ez,
     # v_prime
     v_minus_cross_t_x = v_minus_y*tz-v_minus_z*ty
     v_minus_cross_t_y = -1*v_minus_x*tz+v_minus_z*tx
-    v_minus_cross_t_z = v_minus_x*tz-v_minus_y*tx
+    v_minus_cross_t_z = v_minus_x * ty - v_minus_y * tx
     v_prime_x = v_minus_x + v_minus_cross_t_x
     v_prime_y = v_minus_y + v_minus_cross_t_y
     v_prime_z = v_minus_z + v_minus_cross_t_z
@@ -61,7 +61,7 @@ def UpdateSingleVelocityBoris(vel_x, vel_y, vel_z, Ex, Ey, Ez,
 
 
 @numba.njit(cache=True)
-def UpdateVelocity(vel_x, vel_y, vel_z, Ex, Ey, Ez, Bx, By, Bz, dt, 
+def UpdateVelocity(vel_x, vel_y, vel_z, Ex, Ey, Ez, Bx, By, Bz, dt,
                                        q, m, Ntot):
     """
     Parameters
@@ -84,12 +84,12 @@ def UpdateVelocity(vel_x, vel_y, vel_z, Ex, Ey, Ez, Bx, By, Bz, dt,
     # Loop over particles
     for ip in range(Ntot):
         vel_x[ip], vel_y[ip], vel_z[ip] = UpdateSingleVelocityBoris(
-                           vel_x[ip], vel_y[ip], vel_z[ip], 
-                           Ex[ip], Ey[ip], Ez[ip], Bx[ip], 
-                           By[ip], Bz[ip], dt, q, m[ip])
+                           vel_x[ip], vel_y[ip], vel_z[ip],
+                           Ex[ip], Ey[ip], Ez[ip], Bx[ip],
+                           By[ip], Bz[ip], dt, q[ip], m[ip])
 
 
-@numba.njit(cache=True, fastmath=True)
+@numba.njit(cache=True)
 def UpdatePosition(pos_x, pos_y, pos_z, vel_x, vel_y, vel_z, dt, Ntot):
     """
     Parameters
@@ -109,10 +109,10 @@ def UpdatePosition(pos_x, pos_y, pos_z, vel_x, vel_y, vel_z, dt, Ntot):
     for ip in prange(Ntot):
         pos_x[ip] += vel_x[ip]*dt
         pos_y[ip] += vel_y[ip]*dt
-        pos_z[ip] += vel_z[ip]*dt   
+        pos_z[ip] += vel_z[ip]*dt
 
 
-def ParticlePush(pos_x, pos_y, pos_z, vel_x, vel_y, vel_z, Ex, Ey, Ez, 
+def ParticlePush(pos_x, pos_y, pos_z, vel_x, vel_y, vel_z, Ex, Ey, Ez,
                        Bx, By, Bz, dt, q, m, Ntot):
     """
     Parameters
@@ -135,5 +135,5 @@ def ParticlePush(pos_x, pos_y, pos_z, vel_x, vel_y, vel_z, Ex, Ey, Ez,
         ptcls number
     """
     UpdateVelocity(vel_x, vel_y, vel_z, Ex, Ey, Ez, Bx, By, Bz,
-                       dt, q, m, Ntot)
+                   dt, q, m, Ntot)
     UpdatePosition(pos_x, pos_y, pos_z, vel_x, vel_y, vel_z, dt, Ntot)
