@@ -1,12 +1,13 @@
 from Collisions.NeutralGas import NeutralGas
-
+from scipy.constants import k
+import math
+import numpy as np
 
 class IonizedGas(NeutralGas):
-    def __init__(self, T, n, mass, coullog, name=None):
+    def __init__(self, T, n, mass, name=None):
         super(IonizedGas, self).__init__(T, n, mass, name)
-        self.coullog = coullog
-
-
-if __name__ == '__main__':
-    ions = IonizedGas(T=300., n=1e13, mass=6.6335209E-26, coullog=1, name='Ar')
-    print ions.gen_vel_vector(), ions.gen_vel_vector()
+        self.coullog = math.log(7430*10/4.8e-10/math.sqrt(n))
+        
+    def gen_vel_vector(self):
+        sigma = math.sqrt(k*self.T/self.mass)
+        return np.random.randn(3,120) * sigma
