@@ -24,17 +24,21 @@ class Particle(object):
         self.n_total = len(mass)
         self.dim = pos.shape[0]
 
-        if electric_field_interp_func is not None:
-            self.ef_interp_func = electric_field_interp_func
+        self.ef_interp_func = electric_field_interp_func
+        if self.ef_interp_func is not None:
             self.electric_field = electric_field_interp_func(pos)
+        elif electric_field is not None:
+            self.electric_field = electric_field
         else:
-            self.electric_field = electric_field or zeros_like(pos)
+            self.electric_field = zeros_like(pos)
 
-        if magnetic_field_interp_func is not None:
-            self.mf_interp_func = magnetic_field_interp_func
+        self.mf_interp_func = magnetic_field_interp_func
+        if self.mf_interp_func is not None:
             self.magnetic_field = magnetic_field_interp_func(pos)
+        elif magnetic_field is not None:
+            self.magnetic_field = magnetic_field
         else:
-            self.magnetic_field = magnetic_field or zeros_like(pos)
+            self.magnetic_field = zeros_like(pos)
 
         assert self.electric_field.shape == self.magnetic_field.shape == self.position.shape
 
@@ -76,20 +80,25 @@ class Particle(object):
     def electric_field_interp(self):
         if self.ef_interp_func is not None:
             self.electric_field[:] = self.ef_interp_func(self.position)
+        else:
+            print "Warning: No interpolation function is specified for electric field"
 
     def magnetic_field_interp(self):
         if self.mf_interp_func is not None:
             self.magnetic_field[:] = self.mf_interp_func(self.position)
+            #self.mf_interp_func(self.position, self.magnetic_field)
+        else:
+            print "Warning: No interpolation function is specified for magnetic field"
 
     def get_position(self, idx=None):
         if idx is not None:
-            return array(self.position[:, idx])
-        return self.position
+            return self.position[:, idx].copy()
+        return self.position.copy()
 
     def get_velocity(self, idx=None):
         if idx is not None:
-            return array(self.velocity[:, idx])
-        return self.velocity
+            return self.velocity[:, idx].copy()
+        return self.velocity.copy()
 
     def set_velocity(self, new_velocity, idx=None):
         if idx is not None:
@@ -108,6 +117,9 @@ if __name__ == '__main__':
                         magnetic_field_interp_func=None)
     pos = electron.get_position(1)
     vel = electron.get_velocity(0)
+    electron.set_velocity([1, 20, 1], 0)
+    print 'pos before get():', pos
     pos[0] += 1
-    print electron.get_position(1)
+    print 'pos after get():', electron.get_position(1)
+    print electron.get_velocity(0)
     print pos
