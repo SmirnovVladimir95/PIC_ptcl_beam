@@ -5,9 +5,7 @@ def coulomb_collision(ptcl_beam, n_total, dt, gas, it):
     gas_vel=gas.gen_vel_vector()
     Vt=ptcl_beam.get_velocity()-gas_vel
     vel_norm=linalg.norm(Vt,axis=0)
-    srhi=(e)**4/(2*pi*(epsilon_0)**2)*gas.n*dt*gas.coullog/(gas.mass*ptcl_beam.mass/(gas.mass+ptcl_beam.mass))**2/vel_norm**3
-    #if (any(srhi>1)):
-    #    print(it)    
+    srhi=(e)**4/(2*pi*(epsilon_0)**2)*gas.n*dt*gas.coullog/(gas.mass*ptcl_beam.mass/(gas.mass+ptcl_beam.mass))**2/vel_norm**3  
     phi=random.rand(n_total)*2*pi  
     hi=sqrt(-2*srhi*log(random.rand(n_total)))
     dVx=Vt[0]/sqrt(Vt[0]**2+Vt[1]**2)*Vt[2]*sin(hi)*cos(phi)-Vt[1]/sqrt(Vt[0]**2+Vt[1]**2)*linalg.norm(Vt, axis=0)*sin(hi)*sin(phi)-Vt[0]*(1-cos(hi))
@@ -18,31 +16,3 @@ def coulomb_collision(ptcl_beam, n_total, dt, gas, it):
     Vt[2]=dVz
     new_vel=ptcl_beam.get_velocity()+gas.mass/(gas.mass+ptcl_beam.mass)*Vt
     ptcl_beam.set_velocity(new_velocity=new_vel)
-#    print(Vt[1])
-    
-#    for i in xrange(n_total):
-#         #gas_vel=gas.gen_vel_vector()
-#         #print(linalg.norm(gas_vel))
-#         #Vt=ptcl_beam.get_velocity(i)-gas_vel
-#         #vel_norm=linalg.norm(Vt)     
-#         #srhi=(e)**4/(2*pi*(epsilon_0)**2)*gas.n*gas.ion*dt*gas.coullog/(gas.mass*ptcl_beam.mass[i]/(gas.mass+ptcl_beam.mass[i]))**2/vel_norm**3
-##         if (srhi>0.1):
-##             print(it)
-##             print(srhi)
-##             print(linalg.norm(Vt))
-##             print(gas.mass*ptcl_beam.mass[i]/(gas.mass+ptcl_beam.mass[i]))
-#        # if (i==5):
-#        #     mmmm=linalg.norm(ptcl_beam.get_velocity(i))
-#         phi=random()*2*pi
-#        # hi=sqrt(-2*srhi*.log(random()))             
-#         dVx=Vt[0]/sqrt(Vt[0]**2+Vt[1]**2)*Vt[2]*.sin(hi)*.cos(phi)-Vt[1]/sqrt(Vt[0]**2+Vt[1]**2)*linalg.norm(Vt)*.sin(hi)*.sin(phi)-Vt[0]*(1-.cos(hi))
-#         dVy=Vt[1]/sqrt(Vt[0]**2+Vt[1]**2)*Vt[2]*.sin(hi)*.cos(phi)+Vt[0]/sqrt(Vt[0]**2+Vt[1]**2)*linalg.norm(Vt)*.sin(hi)*.sin(phi)-Vt[1]*(1-.cos(hi))
-#         dVz=-sqrt(Vt[0]**2+Vt[1]**2)*.sin(hi)*.cos(phi)-Vt[2]*(1-.cos(hi))       
-#         Vt[0]=dVx
-#         Vt[1]=dVy
-#         Vt[2]=dVz
-#         new_vel=ptcl_beam.get_velocity(i)+gas.mass/(gas.mass+ptcl_beam.mass[i])*Vt
-#         ptcl_beam.set_velocity(new_velocity=new_vel, idx=i)
-#         #if (i==5):
-#         #    print(linalg.norm(ptcl_beam.get_velocity(i))-mmmm)
-#         #    print()
