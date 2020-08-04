@@ -1,14 +1,13 @@
 from os.path import join
-from numpy import random, ones, concatenate, arange
+from numpy import random, ones, concatenate
 from pandas import read_excel
-from scipy.constants import pi, N_A, e, epsilon_0
+from scipy.constants import pi, N_A, e
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
-from Collisions.ElasticCollision import elastic_collision
 from Collisions.CoulombCollision import coulomb_collision
+from Collisions.ElasticCollision import elastic_collision
 from Collisions.NeutralGas import NeutralGas
-from Collisions.IonizedGas import IonizedGas
 from Field.FieldInterpolation.FieldInterpolation3D import FieldInterpolation3D
 from Field.FieldInterpolation.FieldInterpolationRadial import FieldInterpolationRadial
 from Particle.Particle import Particle
@@ -48,84 +47,56 @@ def simulation(n_total, init_pos, energy_range, vel_theta, dt, it_num, gas, seed
                     magnetic_field_interp_func=mf_interp.interp_func,
                     )
 
-#    collision_prob_data = None
-#    if gas.name == 'Ar':
-#        collision_prob_data = read_excel(join('CollisionData', 'ArG_2.xlsx'), header=None)
-#    if gas.name == 'He':
-#        collision_prob_data = read_excel(join('CollisionData', 'HeG_2.xlsx'), header=None)
+    collision_prob_data = None
+    if gas.name == 'Ar':
+        collision_prob_data = read_excel(join('CollisionData', 'ArG.xlsx'), header=None)
+    if gas.name == 'He':
+        collision_prob_data = read_excel(join('CollisionData', 'HeG.xlsx'), header=None)
 
-#    f1 = interp1d(collision_prob_data[0].values, collision_prob_data[1].values, fill_value='extrapolate')
-#    f2 = interp1d(collision_prob_data[0].values, collision_prob_data[2].values, fill_value='extrapolate')
-#    f3 = interp1d(collision_prob_data[0].values, collision_prob_data[3].values, fill_value='extrapolate')
-#    f4 = interp1d(collision_prob_data[0].values, collision_prob_data[4].values, fill_value='extrapolate')
-#    g_sigma = [(m_235[0], f1), (m_238[0], f1), (m_239[0], f2), (m_240[0], f2), (m_137[0], f3), (m_90[0], f4)]
+    f1 = interp1d(collision_prob_data[0].values, collision_prob_data[1].values, fill_value='extrapolate')
+    f2 = interp1d(collision_prob_data[0].values, collision_prob_data[2].values, fill_value='extrapolate')
+    f3 = interp1d(collision_prob_data[0].values, collision_prob_data[3].values, fill_value='extrapolate')
+    f4 = interp1d(collision_prob_data[0].values, collision_prob_data[4].values, fill_value='extrapolate')
+    g_sigma = [(m_235[0], f1), (m_238[0], f1), (m_239[0], f2), (m_240[0], f2), (m_137[0], f3), (m_90[0], f4)]
 
     track_beam = TrackTraj(beam)
 
     from time import time
     t0 = time()
     beam.vel_push(dt=-0.5 * dt)
-    usrx=[]
-    usry=[]
-    usrz=[]
     for it in range(it_num):
         beam.push(dt=dt)
         beam.electric_field_interp()
         beam.magnetic_field_interp()
-        #elastic_collision(ptcl_beam=beam, n_total=n_total, dt=dt, gas=gas, g_sigma=g_sigma)
-        coulomb_collision(ptcl_beam=beam, n_total=n_total, dt=dt, gas=gas, it=it)
-        if it % 100==0:
-           # print(it)
+        elastic_collision(ptcl_beam=beam, n_total=n_total, dt=dt, gas=gas, g_sigma=g_sigma)
+        #coulomb_collision(beam, n_total, dt, gas, it)
+        if it % 100 == 0:
             track_beam.track_traj()
-            usrx.append(sum(beam.velocity[0])/n_total)     #eto chtobi izmenenie skorostei smotret v srednem
-            usry.append(sum(beam.velocity[1])/n_total)        
-            usrz.append(sum(beam.velocity[2])/n_total)   
-        if it % 10000==0:
-            print(it)
     print 'simulation time:', time() - t0
-    x=arange(0,800,1)  #uchitivaem, chto 800*100 = It_num, to est nado menyat tut i chutb vishe, chtobi It_num poluchalos
-    plt.plot(x,usrx)
-    plt.plot(x,usry)
-    plt.plot(x,usrz)
+
     x, y, z = track_beam.get_traj()
-    plt.figure(figsize=(6, 6))
+    plt.figure(figsize=(5, 5))
     plt.xlim((-0.3, 0.3))
     plt.ylim((-0.3, 0.3))
     #fig, axs = plt.subplots(3, 3)
     plot_traj_multy_ptcls_type(x, y, ptcl_type_num=3, colors=('blue', 'green', 'red'),
                                labels=('m = 235', '120 < m < 160', '70 < m < 120'),
-                               alpha=0.3, xlabel='x, meter', ylabel='y, meter')#, fig=axs[0, 0])
+                               alpha=0.3, xlabel='x, meter', ylabel='y, meter', fig=plt)
     plt.show()
-    fig = plt.gcf()
-    fig.set_size_inches(6, 6, forward=True)    
-    plt.close()
-    plot_traj_multy_ptcls_type(x, z, ptcl_type_num=3, colors=('blue', 'green', 'red'),
-                               labels=('m = 235', '120 < m < 160', '70 < m < 120'),
-                               alpha=0.3, xlabel='x, meter', ylabel='z, meter')
-    plt.show()
-    fig = plt.gcf()
-    fig.set_size_inches(6, 6, forward=True)    
-    plt.close()
-    plot_traj_multy_ptcls_type(y, z, ptcl_type_num=3, colors=('blue', 'green', 'red'),
-                               labels=('m = 235', '120 < m < 160', '70 < m < 120'),
-                               alpha=0.3, xlabel='y, meter', ylabel='z, meter')
-    plt.show()
-    fig = plt.gcf()
-    fig.set_size_inches(6, 6, forward=True)    
-    plt.close()
     return track_beam
 
 
 if __name__ == '__main__':
-    #for ion in [0.06]:#[0.01,0.02,0.03,0.04,0.05,0.06]:#[1e20,2e20,3e20,4e20,5e20,6e20]:
-        Ar = IonizedGas(T=77363.6436, n=2e19, mass=6.6335209E-26, name='Ar') #3.2188255e19
-        He = IonizedGas(T=77363.6436, n=2e19, mass=6.6464764E-27, name='He') #3.2188255e20    9.10938356e-31    6.6464764E-27
-        simulation(n_total=120,
+    Ar = NeutralGas(T=300, n=1e20, mass=6.6335209E-26, name='Ar')
+    He = NeutralGas(T=300, n=6e20, mass=6.6464764E-27, name='He')
+    simulation(n_total=120,
                init_pos=(0.25, 0, 0),
                energy_range=(1 * e, 20 * e),
-               vel_theta=(0, pi/6),
-               it_num=80000,
-               dt=1e-10,
+               vel_theta=(0, pi / 6),
+               it_num=10000,
+               dt=1e-8,
                seed=1,
                gas=Ar,
                )
+    fig = plt.gcf()
+    fig.set_size_inches(6, 6, forward=True)
