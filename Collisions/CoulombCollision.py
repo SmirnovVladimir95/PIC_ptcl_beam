@@ -2,7 +2,7 @@ from numpy import sqrt, linalg, random, log, sin, cos, arange, any
 from scipy.constants import pi, e, epsilon_0
 
 def coulomb_collision(ptcl_beam, n_total, dt, gas, it):
-    gas_vel=gas.gen_vel_vector()
+    gas_vel=gas.gen_vel_vector(n_total)
     Vt=ptcl_beam.get_velocity()-gas_vel
     vel_norm=linalg.norm(Vt,axis=0)
     srhi=(e)**4/(2*pi*(epsilon_0)**2)*gas.n*dt*gas.coullog/(gas.mass*ptcl_beam.mass/(gas.mass+ptcl_beam.mass))**2/vel_norm**3  
