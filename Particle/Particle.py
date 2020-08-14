@@ -100,9 +100,11 @@ class Particle(object):
             return self.velocity[:, idx].copy()
         return self.velocity.copy()
 
-    def set_velocity(self, new_velocity, idx):
-        self.velocity[:, idx] = new_velocity
-
+    def set_velocity(self, new_velocity, idx=None):
+        if idx is not None:
+            self.velocity[:, idx] = new_velocity
+        else:
+            self.velocity[:] = new_velocity
 
 if __name__ == '__main__':
     electron = Particle(mass=array([1, 1]),
