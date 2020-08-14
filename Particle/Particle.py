@@ -102,7 +102,7 @@ class Particle(object):
 
     def set_velocity(self, new_velocity, idx=None):
         if idx is not None:
-            self.velocity[:, idx] = new_velocity
+            self.velocity[:] = new_velocity
         self.velocity = new_velocity
 
 if __name__ == '__main__':
