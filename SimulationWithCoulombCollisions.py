@@ -1,7 +1,7 @@
 from os.path import join
 from numpy import random, ones, concatenate, arange
 from pandas import read_excel
-from scipy.constants import pi, N_A, e, epsilon_0
+from scipy.constants import pi, N_A, e, epsilon_0, k
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
@@ -65,47 +65,48 @@ def simulation(n_total, init_pos, energy_range, vel_theta, dt, it_num, gas, seed
     from time import time
     t0 = time()
     beam.vel_push(dt=-0.5 * dt)
-    usrx=[]
-    usry=[]
-    usrz=[]
+    #usrx=[]
+    #usry=[]
+    #usrz=[]
+    ensr=[]
     for it in range(it_num):
         beam.push(dt=dt)
         beam.electric_field_interp()
         beam.magnetic_field_interp()
         #elastic_collision(ptcl_beam=beam, n_total=n_total, dt=dt, gas=gas, g_sigma=g_sigma)
         coulomb_collision(ptcl_beam=beam, n_total=n_total, dt=dt, gas=gas, it=it)
-        if it % 100==0:
-           # print(it)
-            track_beam.track_traj()
-            usrx.append(sum(beam.velocity[0])/n_total)     #eto shtoby izmenenie skorostei smotret vsrednem
-            usry.append(sum(beam.velocity[1])/n_total)        
-            usrz.append(sum(beam.velocity[2])/n_total)   
-        if it % 10000==0:
+        track_beam.track_traj()
+          #  usrx.append(sum(beam.velocity[0])/n_total)     #eto shtoby izmenenie skorostei smotret vsrednem
+          #  usry.append(sum(beam.velocity[1])/n_total)        
+          #  usrz.append(sum(beam.velocity[2])/n_total)  
+        ensr.append(sum(beam.mass*(beam.velocity[0]**2+beam.velocity[1]**2+beam.velocity[2]**2))/n_total/2*6.242e+18)
+        if it % 100000==0:
             print(it)
     print 'simulation time:', time() - t0
-    x=arange(0,800,1)  #uchtem shto 800*100 = It_num
-    plt.plot(x,usrx)
-    plt.plot(x,usry)
-    plt.plot(x,usrz)
+    x=arange(0,100000,1)  #uchtem shto 800*100 = It_num
+  #  plt.plot(x,usrx)
+  #  plt.plot(x,usry)
+  #  plt.plot(x,usrz)
+    plt.plot(x,ensr[::8])
     x, y, z = track_beam.get_traj()
     plt.figure(figsize=(6, 6))
     plt.xlim((-0.3, 0.3))
     plt.ylim((-0.3, 0.3))
-    plot_traj_multy_ptcls_type(x, y, ptcl_type_num=3, colors=('blue', 'green', 'red'),
+    plot_traj_multy_ptcls_type(x[::8], y[::8], ptcl_type_num=3, colors=('blue', 'green', 'red'),
                                labels=('m = 235', '120 < m < 160', '70 < m < 120'),
                                alpha=0.3, xlabel='x, meter', ylabel='y, meter')#, fig=axs[0, 0])
     plt.show()
     fig = plt.gcf()
     fig.set_size_inches(6, 6, forward=True)    
     plt.close()
-    plot_traj_multy_ptcls_type(x, z, ptcl_type_num=3, colors=('blue', 'green', 'red'),
+    plot_traj_multy_ptcls_type(x[::8], z[::8], ptcl_type_num=3, colors=('blue', 'green', 'red'),
                                labels=('m = 235', '120 < m < 160', '70 < m < 120'),
                                alpha=0.3, xlabel='x, meter', ylabel='z, meter')
     plt.show()
     fig = plt.gcf()
     fig.set_size_inches(6, 6, forward=True)    
     plt.close()
-    plot_traj_multy_ptcls_type(y, z, ptcl_type_num=3, colors=('blue', 'green', 'red'),
+    plot_traj_multy_ptcls_type(y[::8], z[::8], ptcl_type_num=3, colors=('blue', 'green', 'red'),
                                labels=('m = 235', '120 < m < 160', '70 < m < 120'),
                                alpha=0.3, xlabel='y, meter', ylabel='z, meter')
     plt.show()
@@ -116,14 +117,18 @@ def simulation(n_total, init_pos, energy_range, vel_theta, dt, it_num, gas, seed
 
 
 if __name__ == '__main__':
-    #for ion in [0.06]:#[0.01,0.02,0.03,0.04,0.05,0.06]:#[1e20,2e20,3e20,4e20,5e20,6e20]:
-        Ar = IonizedGas(T=773636.436, n=2e19, mass=6.6335209E-26, Z=1, name='Ar') #3.2188255e19
-        He = IonizedGas(T=77363.6436, n=2e19, mass=6.6464764E-27, Z=1, name='He') #3.2188255e20    9.10938356e-31    6.6464764E-27
+    for ion in [2e19]:#[5e17, 1e18, 5e18, 1e19]:#[9e17,1e18,3e18,5e18,7e18, 1e19,2e19,3e19,4e19,5e19,6e19,7e19,8e19,9e19,1e20 5e19,6e19,7e19,8e19,9e19,1e20  0.01,0.02,0.03,0.04,0.05,0.06]:#[1e20,2e20,3e20,4e20,5e20,6e20]:
+#        T=300
+#        p=0.01*0.133322*ion*1e6
+#        print(p/k/T)
+        T_e = 1 * e / (3 / 2 * k) # 1eV
+        Ar = IonizedGas(T=T_e, n=ion, mass=6.6335209E-26, Z=1, name='Ar') #3.2188255e19
+        He = IonizedGas(T=T_e, n=ion, mass=6.6464764E-27, Z=1, name='He') #3.2188255e20    9.10938356e-31    6.6464764E-27
         simulation(n_total=120,
                init_pos=(0.25, 0, 0),
                energy_range=(1 * e, 20 * e),
                vel_theta=(0, pi/6),
-               it_num=80000,
+               it_num=800000,
                dt=1e-10,
                seed=1,
                gas=Ar,
